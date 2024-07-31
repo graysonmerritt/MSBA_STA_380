@@ -9,14 +9,29 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Problem 1
+We are looking for P(Yes|TC)
+P(Yes|RC) = .5
+P(No|RC) = .5
+P(Yes) = .65
+P(No) = .35
+P(RC) = .3
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+The total law of probability states that P(A) = the summation of P(A|B) * P(B)
+The P(Yes) comes from only two conditional probabilities: P(Yes|RC) and P(Yes|TC)
+So P(Yes)=P(Yes∣RC)P(RC)+P(Yes∣TC)P(TC)
+Using some algebra I can arrange this to (P(Yes) - P(Yes|RC)P(RC)) / P(TC) = P(Yes∣TC)
+Thus, P(Yes|TC) is **71.43%**
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r Problem 1}
+p_yes_rc = .5
+p_no_rc = .5
+p_yes = .65
+p_no = .35
+p_rc = .3
+p_tc = .7
+p_yes_tc = (p_yes-p_yes_rc*p_rc) / p_tc
+p_yes_tc
 ```
 
 ## Including Plots
