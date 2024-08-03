@@ -2,14 +2,16 @@
 title: "STA380_James_Problems"
 author: "Grayson Merritt"
 date: "2024-07-31"
-output: pdf_document
+output: 
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Problem 1
+# Problem 1
 We are looking for P(Yes|TC)
 P(Yes|RC) = .5
 P(No|RC) = .5
@@ -23,7 +25,7 @@ So P(Yes)=P(Yes∣RC)P(RC)+P(Yes∣TC)P(TC)
 Using some algebra I can arrange this to (P(Yes) - P(Yes|RC)P(RC)) / P(TC) = P(Yes∣TC)
 Thus, P(Yes|TC) is **71.43%**
 
-# Part B
+### Part B
 Sensitivity = P(P|D) = .993
 Specificity = P(N|ND) = .9999
 Disease = P(D) = .000025
@@ -35,7 +37,8 @@ So we need P(ND) and P(P|ND)
 No disease = P(ND) = 1 - P(D) = .999975
 P(P|ND) = 1 - P(N|ND) = .0001  (This is the False Positive case)
 P(P) = .00012
-After calculating all of my needed info and applying Bayes Theorem, I get that the Probablity of a person having the disease given a positive test is *.1989*
+After calculating all of my needed info and applying Bayes Theorem, I get that the Probability of a person having the disease given a positive test is *19.88%*
+
 ```{r Problem 1}
 p_yes_rc = .5
 p_no_rc = .5
@@ -44,26 +47,68 @@ p_no = .35
 p_rc = .3
 p_tc = .7
 p_yes_tc = (p_yes-p_yes_rc*p_rc) / p_tc
-p_yes_tc
+print(p_yes_tc)
 
 # Part B
 sensitivity = .993
 specificity = .9999
 disease = .000025
 no_disease = 1- disease
+no_disease
 false_postive = 1 - specificity
+false_postive
 positive = sensitivity * disease + false_postive * no_disease
 positive
 disease_given_positive = (sensitivity * disease)/ positive
-disease_given_positive
+print(disease_given_positive)
 
 ```
 
-## Including Plots
+# Question 2
 
-You can also embed plots, for example:
+### Part A
+This table shows the top ten most popular songs since 1958 based on how long they were
+on the billboard 100. Most of these songs were produced in the last 21 years. I find it
+interesting that there are no repeats of performers on this top ten list.
 
 ```{r Problem 2, echo=FALSE}
+library(tidyverse)
+library(readr)
+billboard <- read_csv("billboard.csv")
+#question 2
+#a 
+billboard_a = billboard %>% group_by(performer,song)
+billboard_a %>% summarize(count = n()) %>% arrange(desc(count))
+```
+### Part B
+This plot shows the total number of unique songs that charted the Billboard 100 per year. I guess my
+parents were correct when they said music was better in the 80’s! The number of unique songs that chart
+rapidly declines until around 2002, where more unique songs started to chart. There was a decline around
+2011 followed by rapid unique song growth.
+
+
+```{r Problem 2 Part B}
+#b
+billboard_cutoff = billboard %>% filter(year != 1958 & year != 2021)
+table_with_counts = billboard_cutoff %>% group_by(performer,song,year) %>% 
+  summarize(total_count = n())
+unique_song_count = table_with_counts %>% group_by(year) %>% 
+  summarize(unique_songs = n())
+ggplot(unique_song_count) + geom_line(aes(x=year,y=unique_songs))
+```
+### Part C
+This plot shows artists who have had 30 songs chart for at least ten weeks. Elton John has the highest
+number of songs with 52 songs. I find it interesting that there are a good amount of country artists filled. I
+would have thought this list would have been mainly filled with pop and rock artists
+```{r Problem 2 Part C}
+#C
+billboard_ten_week = billboard %>% group_by(performer,song) %>% 
+  summarize(count = n()) %>%
+  filter(count >=10)
+billboard_19_artists = billboard_ten_week %>% group_by(performer) %>% 
+  summarize(song_count =n()) %>% filter(song_count >=30)
+ggplot(billboard_19_artists) + geom_col(aes(x=performer, y=song_count)) + 
+  coord_flip()
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
