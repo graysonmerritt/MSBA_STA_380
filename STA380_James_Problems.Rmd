@@ -74,7 +74,7 @@ interesting that there are no repeats of performers on this top ten list.
 ```{r Problem 2, echo=FALSE}
 library(tidyverse)
 library(readr)
-billboard <- read_csv("billboard.csv")
+billboard = read_csv("billboard.csv")
 #question 2
 #a 
 billboard_a = billboard %>% group_by(performer,song)
@@ -83,8 +83,9 @@ billboard_a %>% summarize(count = n()) %>% arrange(desc(count))
 ### Part B
 This plot shows the total number of unique songs that charted the Billboard 100 per year. I guess my
 parents were correct when they said music was better in the 80’s! The number of unique songs that chart
-rapidly declines until around 2002, where more unique songs started to chart. There was a decline around
-2011 followed by rapid unique song growth.
+peaks at around 1967 and then rapidly declines until around 2002, where more unique songs started to chart.
+This could potentially be due to the rise if iTunes. 
+There was a decline around 2011 followed by rapid unique song growth.
 
 
 ```{r Problem 2 Part B}
@@ -109,6 +110,51 @@ billboard_19_artists = billboard_ten_week %>% group_by(performer) %>%
   summarize(song_count =n()) %>% filter(song_count >=30)
 ggplot(billboard_19_artists) + geom_col(aes(x=performer, y=song_count)) + 
   coord_flip()
+```
+# Problem 3
+In order to agree with the stats guru's conclusion, we first have to do our own analysis of the data
+and see what findings we can come up with. 
+We first took a look at the median rent of green buildings vs non green buildings and confirmed that 
+on average green buildings earn about $2.6 more per sq ft than non green buildings. 
+Our general strategy is  to see what  factors could affect rent and see if these factors are 
+over or under represented in the green buildings. 
+We then looked to see if green buildings tended to be more of Class A. We found that around 80%
+of green rated buildings are class A, versus only 36% of non green buildings. This may be a 
+potential confounder, as class A buildings will command more rent. 
+We plotted Rent vs age and found that an older building commands less rent. However,
+the non green buildings are almost 50 years old on average vs 24 years for green buildings!
+This could certainly be a confounder. 
+Rent is LOWER for renovated buildings. This is not what we expected. Most green buildings however 
+are NOT renovated! This means that they are drawing higher prices due to not being renovated. 
+
+```{r}
+library(mosaic)
+greenbuildings = read_csv("greenbuildings.csv")
+median(Rent ~ green_rating, data=greenbuildings)
+
+ggplot(greenbuildings) + 
+  geom_boxplot(aes(x=factor(green_rating), y=Rent)) + 
+  coord_flip()
+
+# Look at which buildings are "more desirable"
+xtabs(~ class_a + green_rating, data=greenbuildings) %>%
+  prop.table(margin=2)
+
+# Look at difference in age
+mean(age ~ green_rating, data=greenbuildings)
+ggplot(greenbuildings, aes(x = age, y = Rent)) +
+  geom_point(aes(color = as.factor(green_rating)), alpha = 0.6) +
+  geom_smooth(method = "loess", se = FALSE, color = "blue") +
+  labs(title = "Rent vs Age of Buildings",
+       x = "Age of Building (years)",
+       y = "Rent ($ per square foot per year)",
+       color = "Green Rating") +
+  theme_minimal()
+
+# look to see if renovated affects rent
+mean(Rent ~ renovated, data = greenbuildings)
+xtabs(~ renovated + green_rating, data=greenbuildings) %>%
+  prop.table(margin=2)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
