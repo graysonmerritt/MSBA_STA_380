@@ -112,8 +112,8 @@ ggplot(billboard_19_artists) + geom_col(aes(x=performer, y=song_count)) +
   coord_flip()
 ```
 # Problem 3
-In order to agree with the stats guru's conclusion, we first have to do our own analysis of the data
-and see what findings we can come up with. 
+In order to agree with the stats guru's conclusion that building a green building makes sense,
+we first have to do our own analysis of the data and see what findings we can come up with. 
 We first took a look at the median rent of green buildings vs non green buildings and confirmed that 
 on average green buildings earn about $2.6 more per sq ft than non green buildings. 
 Our general strategy is  to see what  factors could affect rent and see if these factors are 
@@ -124,24 +124,44 @@ potential confounder, as class A buildings will command more rent.
 We plotted Rent vs age and found that an older building commands less rent. However,
 the non green buildings are almost 50 years old on average vs 24 years for green buildings!
 This could certainly be a confounder. 
-Rent is LOWER for renovated buildings. This is not what we expected. Most green buildings however 
+Rent is LOWER for renovated buildings. This is not what we expected. Renovated buildings
+command less rent by $3.79! Most green buildings (around 79%), however, 
 are NOT renovated! This means that they are drawing higher prices due to not being renovated. 
+
+So far we have found 3 plausible explanations for why green buildings demand higher rent. The class A
+variable is likely one of the biggest confounders, so we want to see the median rent within non class A buildings
+faceted by green rating. We found that after adjusting for class A buildings the premium is only $2.12 now.
+
+We think this trend will continue for most of these confounders. We think the best way to adjust for these 
+confounders is to use a technique called matching. Matching relies on a simple principle: compare like with like.
+In this example, that means if we have a 25-year-old, Class A building that is renovated with a green rating, 
+we try to find another 25-year old, Class A renovated building without a green rating to compare it to.
+Matching  constructs a balanced data set from an unbalanced one. This matched data can them be compared by their rents
+to see if green buildings truly cause a higher premium. 
+
+We think the stats guru did not take into account any confounders in his model. While green builfsing may
+deman higher rent, we think there any more variables at play here. 
+
 
 ```{r}
 library(mosaic)
 greenbuildings = read_csv("greenbuildings.csv")
+# also remove the occupancy rate of less than 10%
+greenbuildings = greenbuildings %>% filter('leasing_rate' >= 10)
+
 median(Rent ~ green_rating, data=greenbuildings)
 
 ggplot(greenbuildings) + 
   geom_boxplot(aes(x=factor(green_rating), y=Rent)) + 
   coord_flip()
 
-# Look at which buildings are "more desirable"
+# Look at which buildings are "more desirable" (Class A)
 xtabs(~ class_a + green_rating, data=greenbuildings) %>%
   prop.table(margin=2)
 
-# Look at difference in age
+# Look at how age affects rent
 mean(age ~ green_rating, data=greenbuildings)
+
 ggplot(greenbuildings, aes(x = age, y = Rent)) +
   geom_point(aes(color = as.factor(green_rating)), alpha = 0.6) +
   geom_smooth(method = "loess", se = FALSE, color = "blue") +
@@ -155,6 +175,25 @@ ggplot(greenbuildings, aes(x = age, y = Rent)) +
 mean(Rent ~ renovated, data = greenbuildings)
 xtabs(~ renovated + green_rating, data=greenbuildings) %>%
   prop.table(margin=2)
+
+
+
+# Look at non class A buildings 
+median_rent_non_class_a <- greenbuildings %>%
+  filter(class_a == 0) %>%  # Exclude Class A buildings
+  group_by(green_rating) %>%
+  summarise(median_rent = median(Rent))
+
+print(median_rent_non_class_a)
+
+ggplot(median_rent_non_class_a, aes(x = factor(green_rating), y = median_rent, fill = factor(green_rating))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Median Rent for Non-Class A Buildings by Green Rating",
+       x = "Green Rating (0 = Non-Green, 1 = Green)",
+       y = "Median Rent ($ per square foot per year)",
+       fill = "Green Rating") +
+  scale_fill_manual(values = c("0" = "grey", "1" = "green")) +
+  theme_minimal()
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
