@@ -74,7 +74,7 @@ interesting that there are no repeats of performers on this top ten list.
 ```{r Problem 2, echo=FALSE}
 library(tidyverse)
 library(readr)
-billboard <- read_csv("billboard.csv")
+billboard = read_csv("billboard.csv")
 #question 2
 #a 
 billboard_a = billboard %>% group_by(performer,song)
@@ -83,8 +83,9 @@ billboard_a %>% summarize(count = n()) %>% arrange(desc(count))
 ### Part B
 This plot shows the total number of unique songs that charted the Billboard 100 per year. I guess my
 parents were correct when they said music was better in the 80’s! The number of unique songs that chart
-rapidly declines until around 2002, where more unique songs started to chart. There was a decline around
-2011 followed by rapid unique song growth.
+peaks at around 1967 and then rapidly declines until around 2002, where more unique songs started to chart.
+This could potentially be due to the rise if iTunes. 
+There was a decline around 2011 followed by rapid unique song growth.
 
 
 ```{r Problem 2 Part B}
@@ -110,5 +111,185 @@ billboard_19_artists = billboard_ten_week %>% group_by(performer) %>%
 ggplot(billboard_19_artists) + geom_col(aes(x=performer, y=song_count)) + 
   coord_flip()
 ```
+# Problem 3
+In order to agree with the stats guru's conclusion that building a green building makes sense, we first have to do our own analysis of the data and see what findings we can come up with. We first took a look at the median rent of green buildings vs non green buildings and confirmed that on average green buildings earn about $2.6 more per sq ft than non green buildings. Our general strategy is  to see what  factors could affect rent and see if these factors are  over or under represented in the green buildings. We then looked to see if green buildings tended to be more of Class A. We found that around 80% of green rated buildings are class A, versus only 36% of non green buildings. This may be a  potential confounder, as class A buildings will command more rent.  We plotted Rent vs age and found that an older building commands less rent. However,
+the non green buildings are almost 50 years old on average vs 24 years for green buildings! This could certainly be a confounder. Rent is LOWER for renovated buildings. This is not what we expected. Renovated buildings command less rent by $3.79! Most green buildings (around 79%), however, are NOT renovated! This means that they are drawing higher prices due to not being renovated. 
+
+So far we have found 3 plausible explanations for why green buildings demand higher rent. The class A variable is likely one of the biggest confounders, so we want to see the median rent within non class A buildings faceted by green rating. We found that after adjusting for class A buildings the premium is only $2.12 now.
+
+We think this trend will continue for most of these confounders. We think the best way to adjust for these  confounders is to use a technique called matching. Matching relies on a simple principle: compare like with like. In this example, that means if we have a 25-year-old, Class A building that is renovated with a green rating, we try to find another 25-year old, Class A renovated building without a green rating to compare it to. Matching  constructs a balanced data set from an unbalanced one. This matched data can them be compared by their rents to see if green buildings truly cause a higher premium. 
+
+We think the stats guru did not take into account any confounders in his model. While green building may demand higher rent, we think there any more variables at play here. 
+
+
+```{r problem 4}
+library(mosaic)
+greenbuildings = read_csv("greenbuildings.csv")
+# also remove the occupancy rate of less than 10%
+greenbuildings = greenbuildings %>% filter('leasing_rate' >= 10)
+
+median(Rent ~ green_rating, data=greenbuildings)
+
+ggplot(greenbuildings) + 
+  geom_boxplot(aes(x=factor(green_rating), y=Rent)) + 
+  coord_flip()
+
+# Look at which buildings are "more desirable" (Class A)
+xtabs(~ class_a + green_rating, data=greenbuildings) %>%
+  prop.table(margin=2)
+
+# Look at how age affects rent
+mean(age ~ green_rating, data=greenbuildings)
+
+ggplot(greenbuildings, aes(x = age, y = Rent)) +
+  geom_point(aes(color = as.factor(green_rating)), alpha = 0.6) +
+  geom_smooth(method = "loess", se = FALSE, color = "blue") +
+  labs(title = "Rent vs Age of Buildings",
+       x = "Age of Building (years)",
+       y = "Rent ($ per square foot per year)",
+       color = "Green Rating") +
+  theme_minimal()
+
+# look to see if renovated affects rent
+mean(Rent ~ renovated, data = greenbuildings)
+xtabs(~ renovated + green_rating, data=greenbuildings) %>%
+  prop.table(margin=2)
+
+
+
+# Look at non class A buildings 
+median_rent_non_class_a <- greenbuildings %>%
+  filter(class_a == 0) %>%  # Exclude Class A buildings
+  group_by(green_rating) %>%
+  summarise(median_rent = median(Rent))
+
+print(median_rent_non_class_a)
+
+ggplot(median_rent_non_class_a, aes(x = factor(green_rating), y = median_rent, fill = factor(green_rating))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Median Rent for Non-Class A Buildings by Green Rating",
+       x = "Green Rating (0 = Non-Green, 1 = Green)",
+       y = "Median Rent ($ per square foot per year)",
+       fill = "Green Rating") +
+  scale_fill_manual(values = c("0" = "grey", "1" = "green")) +
+  theme_minimal()
+```
+
+
+### Problem 4
+After changing our timestamp to a datetime data type, we plotted the average boardings by a few different variables. 
+```{r problem 4}
+file_path <- "capmetro_UT.csv"
+capmetro_UT <- read.csv(file_path)
+
+# Convert timestamp to datetime
+capmetro_UT$timestamp <- ymd_hms(capmetro_UT$timestamp)
+
+# average boardings by hour of the day
+hour_summary <- capmetro_UT %>%
+  group_by(hour_of_day) %>%
+  summarize(mean_boardings = mean(boarding))
+
+ggplot(hour_summary) + 
+  geom_line(aes(x = hour_of_day, y = mean_boardings)) +
+  labs(title = "Average Boardings by Hour of the Day",
+       x = "Hour of the Day",
+       y = "Average Number of Boardings") +
+  theme_minimal()
+```
+The relationship between boardings and hour of the day is obviously nonlinear. There is a peak in the late afternoon, followed by a lull overnight and in the early morning, when fewer people ride the bus.
+
+```{r}
+# Convert day_of_week to a factor with levels in the correct order
+capmetro_UT$day_of_week <- factor(capmetro_UT$day_of_week, 
+                                  levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+
+# Summary of mean boardings and alightings by day of the week
+day_summary <- capmetro_UT %>%
+  group_by(day_of_week) %>%
+  summarise(mean_boardings = mean(boarding), mean_alightings = mean(alighting)) %>%
+  pivot_longer(cols = c(mean_boardings, mean_alightings), names_to = "type", values_to = "count")
+
+# Plot average boardings and alightings by day of the week
+ggplot(day_summary, aes(x = day_of_week, y = count, fill = type)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Boardings and Alightings by Day of the Week",
+       x = "Day of the Week",
+       y = "Average Count",
+       fill = "Type") +
+  theme_minimal()
+```
+There are more boardings than alightings for every day. It would make sense that boardings would be more accurately tracked than alightings, so we hypothesize that there is a proportion of alightings that is not captured each day. Another hypthesis is that this is data only for UT bus stops. That would mean that more people leave campus on a metro than arrive to campus on a metro. Saturday and Sunday have less boardings and alightings due to classes not being on those days. Boardings and alightings peak on Tuesday and then tail off towards the end of the week. There are less classes on Friday typically, so this drop makes sense. 
+
+```{r problem 4}
+coldest_temperatures <- capmetro_UT %>%
+  arrange(temperature) %>%
+  select(timestamp, temperature) %>%
+  head()
+
+# Print the coldest few values
+print(coldest_temperatures)
+
+
+ggplot() +
+  geom_point(data = capmetro_UT, aes(x = temperature, y = boarding, color = "Boarding"), alpha = 0.5) +
+  geom_point(data = capmetro_UT, aes(x = temperature, y = alighting, color = "Alighting"), alpha = 0.5) +
+  geom_smooth(data = capmetro_UT, aes(x = temperature, y = boarding, color = "Boarding"), method = "lm", se = FALSE) +
+  geom_smooth(data = capmetro_UT, aes(x = temperature, y = alighting, color = "Alighting"), method = "lm", se = FALSE) +
+  labs(title = "Ridership vs. Temperature",
+       x = "Temperature (F)",
+       y = "Count",
+       color = "Type") +
+  scale_color_manual(values = c("Boarding" = "blue", "Alighting" = "red")) +
+  theme_minimal()
+
+
+```
+This plot is very messy. Of note is that the coldest temperature that Fall 2018 Semester is around 29 degrees. It appears that there is a positive relationship between boardings and temperature but a negative relationship between temperature and alighting! The trendlines are likely influenced by outliers though.
+
+
+
+```{r}
+# Convert month to a factor with levels in the correct order
+capmetro_UT$month <- factor(capmetro_UT$month, 
+                            levels = c("Sep", "Oct", "Nov"))
+
+# Summary of mean boardings and alightings by month
+month_summary <- capmetro_UT %>%
+  group_by(month) %>%
+  summarise(mean_boardings = mean(boarding, na.rm = TRUE), 
+            mean_alightings = mean(alighting, na.rm = TRUE)) %>%
+  pivot_longer(cols = c(mean_boardings, mean_alightings), names_to = "type", values_to = "count")
+
+# Plot average boardings and alightings by month
+ggplot(month_summary, aes(x = month, y = count, fill = type)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Boardings and Alightings by Month",
+       x = "Month",
+       y = "Average Count",
+       fill = "Type") +
+    theme_minimal()
+
+```
+There are more boardings and alightings in October than September. This is likely due to there being no holidays in October, making it a busier month. Football games are in full force and Halloween is a big deal. Conversely, November has less people on the metro. We think this is due to school burnout causing less people to go to school plus the Thanksgiving break that affects at least a week of data \. 
+```{r problem 4}
+
+# ridership by weekend status
+weekend_summary <- capmetro_UT %>%
+  group_by(weekend, hour_of_day) %>%
+  summarise(mean_boardings = mean(boarding), mean_alightings = mean(alighting))
+
+ggplot(weekend_summary) + 
+  geom_line(aes(x = hour_of_day, y = mean_boardings, color = "Boardings"), size = 1) +
+  geom_line(aes(x = hour_of_day, y = mean_alightings, color = "Alightings"), size = 1) +
+  facet_wrap(~weekend) +
+  labs(title = "Ridership by Hour: Weekday vs. Weekend",
+       x = "Hour of the Day",
+       y = "Average Count",
+       color = "Type") +
+  theme_minimal()
+```
+The graphs between weekday and weekend are strikingly different! Weekends see a lot less traffic as classes are not in session. Weekdays have a peak alighting at around 8-9AM as students and faculty head to class. There is more boardings beyond 12PM with a peak at around 6PM as students and faculty leave campus for the day. 
+
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
