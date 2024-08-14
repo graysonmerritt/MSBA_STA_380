@@ -25,7 +25,7 @@ So P(Yes)=P(Yes∣RC)P(RC)+P(Yes∣TC)P(TC)
 Using some algebra I can arrange this to (P(Yes) - P(Yes|RC)P(RC)) / P(TC) = P(Yes∣TC)
 Thus, P(Yes|TC) is **71.43%**
 
-### Part B
+**Part B**
 Sensitivity = P(P|D) = .993
 Specificity = P(N|ND) = .9999
 Disease = P(D) = .000025
@@ -66,7 +66,7 @@ print(disease_given_positive)
 
 # Question 2
 
-### Part A
+ **Part A**
 This table shows the top ten most popular songs since 1958 based on how long they were
 on the billboard 100. Most of these songs were produced in the last 21 years. I find it
 interesting that there are no repeats of performers on this top ten list.
@@ -80,7 +80,7 @@ billboard = read_csv("billboard.csv")
 billboard_a = billboard %>% group_by(performer,song)
 billboard_a %>% summarize(count = n()) %>% arrange(desc(count))
 ```
-### Part B
+**Part B**
 This plot shows the total number of unique songs that charted the Billboard 100 per year. I guess my
 parents were correct when they said music was better in the 80’s! The number of unique songs that chart
 peaks at around 1967 and then rapidly declines until around 2002, where more unique songs started to chart.
@@ -97,7 +97,7 @@ unique_song_count = table_with_counts %>% group_by(year) %>%
   summarize(unique_songs = n())
 ggplot(unique_song_count) + geom_line(aes(x=year,y=unique_songs))
 ```
-### Part C
+**Part C**
 This plot shows artists who have had 30 songs chart for at least ten weeks. Elton John has the highest
 number of songs with 52 songs. I find it interesting that there are a good amount of country artists filled. I
 would have thought this list would have been mainly filled with pop and rock artists
@@ -112,17 +112,8 @@ ggplot(billboard_19_artists) + geom_col(aes(x=performer, y=song_count)) +
   coord_flip()
 ```
 # Problem 3
-In order to agree with the stats guru's conclusion that building a green building makes sense, we first have to do our own analysis of the data and see what findings we can come up with. We first took a look at the median rent of green buildings vs non green buildings and confirmed that on average green buildings earn about $2.6 more per sq ft than non green buildings. Our general strategy is  to see what  factors could affect rent and see if these factors are  over or under represented in the green buildings. We then looked to see if green buildings tended to be more of Class A. We found that around 80% of green rated buildings are class A, versus only 36% of non green buildings. This may be a  potential confounder, as class A buildings will command more rent.  We plotted Rent vs age and found that an older building commands less rent. However,
-the non green buildings are almost 50 years old on average vs 24 years for green buildings! This could certainly be a confounder. Rent is LOWER for renovated buildings. This is not what we expected. Renovated buildings command less rent by $3.79! Most green buildings (around 79%), however, are NOT renovated! This means that they are drawing higher prices due to not being renovated. 
-
-So far we have found 3 plausible explanations for why green buildings demand higher rent. The class A variable is likely one of the biggest confounders, so we want to see the median rent within non class A buildings faceted by green rating. We found that after adjusting for class A buildings the premium is only $2.12 now.
-
-We think this trend will continue for most of these confounders. We think the best way to adjust for these  confounders is to use a technique called matching. Matching relies on a simple principle: compare like with like. In this example, that means if we have a 25-year-old, Class A building that is renovated with a green rating, we try to find another 25-year old, Class A renovated building without a green rating to compare it to. Matching  constructs a balanced data set from an unbalanced one. This matched data can them be compared by their rents to see if green buildings truly cause a higher premium. 
-
-We think the stats guru did not take into account any confounders in his model. While green building may demand higher rent, we think there any more variables at play here. 
-
-
-```{r problem 4}
+In order to agree with the stats guru's conclusion that building a green building makes sense, we first have to do our own analysis of the data and see what findings we can come up with. We first took a look at the median rent of green buildings vs non green buildings and confirmed that on average green buildings earn about $2.6 more per sq ft than non green buildings. Our general strategy is  to see what  factors could affect rent and see if these factors are  over or under represented in the green buildings.
+```{r problem 3}
 library(mosaic)
 greenbuildings = read_csv("greenbuildings.csv")
 # also remove the occupancy rate of less than 10%
@@ -133,11 +124,20 @@ median(Rent ~ green_rating, data=greenbuildings)
 ggplot(greenbuildings) + 
   geom_boxplot(aes(x=factor(green_rating), y=Rent)) + 
   coord_flip()
+```
 
+
+We then looked to see if green buildings tended to be more of Class A. We found that around 80% of green rated buildings are class A, versus only 36% of non green buildings. This may be a  potential confounder, as class A buildings will command more rent.  
+
+```{r problem 3 class A}
 # Look at which buildings are "more desirable" (Class A)
 xtabs(~ class_a + green_rating, data=greenbuildings) %>%
   prop.table(margin=2)
+```
 
+
+We plotted Rent vs age and found that an older building commands less rent. However, the non green buildings are almost 50 years old on average vs 24 years for green buildings! This could certainly be a confounder. 
+```{r problem 3 age}
 # Look at how age affects rent
 mean(age ~ green_rating, data=greenbuildings)
 
@@ -149,14 +149,22 @@ ggplot(greenbuildings, aes(x = age, y = Rent)) +
        y = "Rent ($ per square foot per year)",
        color = "Green Rating") +
   theme_minimal()
+```
+
+
+Rent is LOWER for renovated buildings. This is not what we expected. Renovated buildings command less rent by $3.79! Most green buildings (around 79%), however, are NOT renovated! This means that they are drawing higher prices due to not being renovated. 
+
+```{r problem 3 rent}
 
 # look to see if renovated affects rent
 mean(Rent ~ renovated, data = greenbuildings)
 xtabs(~ renovated + green_rating, data=greenbuildings) %>%
   prop.table(margin=2)
+```
 
 
-
+So far we have found 3 plausible explanations for why green buildings demand higher rent. The class A variable is likely one of the biggest confounders, so we want to see the median rent within non class A buildings faceted by green rating. We found that after adjusting for class A buildings the premium is only $2.12 now.
+```{r problem 3 trying to match}
 # Look at non class A buildings 
 median_rent_non_class_a <- greenbuildings %>%
   filter(class_a == 0) %>%  # Exclude Class A buildings
@@ -175,8 +183,14 @@ ggplot(median_rent_non_class_a, aes(x = factor(green_rating), y = median_rent, f
   theme_minimal()
 ```
 
+We think this trend will continue for most of these confounders. We think the best way to adjust for these  confounders is to use a technique called matching. Matching relies on a simple principle: compare like with like. In this example, that means if we have a 25-year-old, Class A building that is renovated with a green rating, we try to find another 25-year old, Class A renovated building without a green rating to compare it to. Matching  constructs a balanced data set from an unbalanced one. This matched data can them be compared by their rents to see if green buildings truly cause a higher premium. 
 
-### Problem 4
+We think the stats guru did not take into account any confounders in his model. While green building may demand higher rent, we think there any more variables at play here. 
+
+
+
+
+# Problem 4
 After changing our timestamp to a datetime data type, we plotted the average boardings by a few different variables. 
 ```{r problem 4}
 file_path <- "capmetro_UT.csv"
@@ -199,7 +213,7 @@ ggplot(hour_summary) +
 ```
 The relationship between boardings and hour of the day is obviously nonlinear. There is a peak in the late afternoon, followed by a lull overnight and in the early morning, when fewer people ride the bus.
 
-```{r}
+```{r prob 4 2}
 # Convert day_of_week to a factor with levels in the correct order
 capmetro_UT$day_of_week <- factor(capmetro_UT$day_of_week, 
                                   levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
@@ -221,7 +235,7 @@ ggplot(day_summary, aes(x = day_of_week, y = count, fill = type)) +
 ```
 There are more boardings than alightings for every day. It would make sense that boardings would be more accurately tracked than alightings, so we hypothesize that there is a proportion of alightings that is not captured each day. Another hypthesis is that this is data only for UT bus stops. That would mean that more people leave campus on a metro than arrive to campus on a metro. Saturday and Sunday have less boardings and alightings due to classes not being on those days. Boardings and alightings peak on Tuesday and then tail off towards the end of the week. There are less classes on Friday typically, so this drop makes sense. 
 
-```{r problem 4}
+```{r problem 4 3}
 coldest_temperatures <- capmetro_UT %>%
   arrange(temperature) %>%
   select(timestamp, temperature) %>%
@@ -249,7 +263,7 @@ This plot is very messy. Of note is that the coldest temperature that Fall 2018 
 
 
 
-```{r}
+```{r prob 4 4}
 # Convert month to a factor with levels in the correct order
 capmetro_UT$month <- factor(capmetro_UT$month, 
                             levels = c("Sep", "Oct", "Nov"))
@@ -271,8 +285,8 @@ ggplot(month_summary, aes(x = month, y = count, fill = type)) +
     theme_minimal()
 
 ```
-There are more boardings and alightings in October than September. This is likely due to there being no holidays in October, making it a busier month. Football games are in full force and Halloween is a big deal. Conversely, November has less people on the metro. We think this is due to school burnout causing less people to go to school plus the Thanksgiving break that affects at least a week of data \. 
-```{r problem 4}
+There are more boardings and alightings in October than September. This is likely due to there being no holidays in October, making it a busier month. Football games are in full force and Halloween is a big deal. Conversely, November has less people on the metro. We think this is due to school burnout causing less people to go to school plus the Thanksgiving break that affects at least a week of data. 
+```{r problem 4 5}
 
 # ridership by weekend status
 weekend_summary <- capmetro_UT %>%
@@ -292,4 +306,150 @@ ggplot(weekend_summary) +
 The graphs between weekday and weekend are strikingly different! Weekends see a lot less traffic as classes are not in session. Weekdays have a peak alighting at around 8-9AM as students and faculty head to class. There is more boardings beyond 12PM with a peak at around 6PM as students and faculty leave campus for the day. 
 
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+
+
+
+# Problem 5
+First we had to load our data and engineer it into a usable format for our clustering algorithms. We narrowed the data down to only the 11 chemical properties and then scaled the data while also removing the data. 
+```{r prob 5}
+
+library(Rtsne)
+
+# Keep just the chemicals, scale the data, and then remove duplicates
+set.seed(19)
+wine = read.csv('wine.csv')
+wine = unique(wine)
+wineSubset = select(wine, -color, -quality)
+wineSubsetScaled = scale(wineSubset)
+duplicate_rows = duplicated(wineSubsetScaled) | duplicated(wineSubsetScaled, fromLast = TRUE)
+wineSubsetScaled = wineSubsetScaled[!duplicate_rows, ]
+wine = wine[!duplicate_rows, ]
+
+```
+
+Then we run PCA on the data. About half the data can be captured in two dimensions. The dataframe shows how much data is captured by each PCA component. The graph shows that PCA does a decent job separating the wines into color based on the chemical properties. The clusters are in close vicinity after reducing the dimensions from 11 to 2. There is some overlap in the middle between the two clusters. 
+```{r prob 5 PCA}
+# scale allows us to make sure each variable contributes equally 
+pcaResult = prcomp(wineSubsetScaled, scale = TRUE)
+
+# get the first and second principal component 
+pcaDataColor = data.frame(PC1 = pcaResult$x[, 1], PC2 = pcaResult$x[, 2], color = wine$color)
+
+ggplot(pcaDataColor, aes(x = PC1, y = PC2, color = color)) +
+  geom_point() +
+  labs(title = "PCA Visualization by Color", x = "Principal Component 1", y = "Principal Component 2") +
+  scale_color_manual(values = c("white" = "blue", "red" = "red"))+
+  theme_minimal()
+```
+We then used K means clustering to try and see how accurate PCA is. The clustering shows a majority of reds in one cluster and a majority of whites in the other. This is good news. The accuracy was 98.16%. 
+```{r prob 5 kmeans on PCA}
+# Perform K-means clustering on the PCA-transformed data
+kmeansPCAResultColor = kmeans(pcaDataColor[, 1:2], centers = 2, nstart = 20)
+pcaDataColor$clusterColor = as.factor(kmeansPCAResultColor$cluster)
+
+# Create a confusion matrix to compare the actual color with the cluster assignments
+confusion_matrix_pca <- table(pcaDataColor$color, pcaDataColor$clusterColor)
+print(confusion_matrix_pca)
+
+# Calculate the accuracy
+correct_labels_pca <- sum(diag(confusion_matrix_pca))  # Sum of diagonal elements
+total_labels_pca <- sum(confusion_matrix_pca)  # Sum of all elements
+accuracy_pca <- correct_labels_pca / total_labels_pca  # Accuracy
+
+# Print the accuracy
+print(paste("Accuracy: ", round(accuracy_pca, 4)))
+
+# Visualization of the PCA with clusters
+ggplot(pcaDataColor, aes(x = PC1, y = PC2, color = clusterColor)) +
+  geom_point() +
+  labs(title = "PCA Visualization with K-means Clusters", x = "Principal Component 1", y = "Principal Component 2") +
+  scale_color_manual(values = c("1" = "blue", "2" = "red")) +
+  theme_minimal()
+
+
+
+
+
+
+```
+We then tried to see if PCA can predict the wine quality correctly. Judging by our graph, it does a pretty poor job on both clusters. Wine quality is likely much more subjective than if the wine is red vs white based on its chemical components!
+```{r prob 5 PCA on quailty }
+
+# Add quality to the data frame for visualization
+pcaDataQuality = data.frame(PC1 = pcaResult$x[, 1], PC2 = pcaResult$x[, 2], 
+                            quality = wine$quality, cluster = pcaDataColor$clusterColor)
+
+ggplot(pcaDataQuality, aes(x = PC1, y = PC2, color = as.factor(quality))) +
+  geom_point() +
+  facet_wrap(~ cluster) +
+  labs(title = "PCA Visualization by Quality and Cluster", x = "Principal Component 1", y = "Principal Component 2") +
+  theme_minimal()
+```
+
+
+Next we ran tSNE. Perhaps the linear PCA summary is not very good and is misleading us, and tSNE can help us out here with its nonlinear dimensonality reduction. We decided to do this in R to keep this problem all on the same file (hopefully this is a good idea!). There is more of a defined boundary in TSNE than PCA. There are a few more whites that are miscalssified as red than reds misclassified as white. 
+
+```{r prob 5 tSNE}
+tsneResult = Rtsne(wineSubsetScaled, dims = 2)
+tsneData = data.frame(TSNE_1 = tsneResult$Y[, 1], TSNE_2 = tsneResult$Y[, 2], color = wine$color)
+
+ggplot(tsneData, aes(x = TSNE_1, y = TSNE_2, color = color)) +
+  geom_point() +
+  labs(title = "t-SNE Visualization by Color", x = "t-SNE Dimension 1", y = "t-SNE Dimension 2") +
+  scale_color_manual(values = c("white" = "blue", "red" = "red"))+
+  theme_minimal()
+```
+
+We than ran K means on TSNE and calculate the confusion matrix. It seems to do a good with the reds, but there quite a few misclassified whites! At first glance it looks like PCA does a much better job with accuracy, as the calculated tSNE accruacy is 5.44%
+```{r problem 4 k means on tsne}
+K = 2
+kmeansTSNEResultColor = kmeans(tsneData[, 1:2], centers = K, nstart = 20)
+tsneData$clusterColor = as.factor(kmeansTSNEResultColor$cluster)
+
+# Create a confusion matrix
+confusion_matrix_tsne <- table(tsneData$color, tsneData$clusterColor)
+print(confusion_matrix_tsne)
+
+# Calculate the accuracy
+correct_labels_tsne <- sum(diag(confusion_matrix_tsne))  # Sum of the diagonal elements
+total_labels_tsne <- sum(confusion_matrix_tsne)  # Sum of all elements
+accuracy_tsne <- correct_labels_tsne / total_labels_tsne  # Accuracy
+
+# Print the accuracy
+print(paste("Accuracy: ", round(accuracy_tsne, 4)))
+
+# Visualize t-SNE with K-means clusters
+ggplot(tsneData, aes(x = TSNE_1, y = TSNE_2, color = clusterColor)) +
+  geom_point() +
+  labs(title = "t-SNE Visualization with Clusters for Color", x = "t-SNE Dimension 1", y = "t-SNE Dimension 2") +
+  scale_color_manual(values = c("2" = "blue", "1" = "red"))+
+  theme_minimal()
+
+```
+
+TSNE may do a little better job are predicting quality, but it still doesn't look great. The plot below is quite a mess, with the quality all over the place in two clusters. The boundary at the top of the second cluster is quite interesting. It looks like most predicted wine quality is 5 or 6. 
+```{r prob 5 TSNE quality}
+tsneDataQuality = data.frame(
+  TSNE_1 = tsneResult$Y[, 1], 
+  TSNE_2 = tsneResult$Y[, 2], 
+  quality = wine$quality, 
+  cluster = tsneData$clusterColor
+)
+
+ggplot(tsneDataQuality, aes(x = TSNE_1, y = TSNE_2, color = as.factor(quality))) +
+  geom_point() +
+  facet_wrap(~ cluster) +
+  labs(title = "t-SNE Visualization by Quality and Cluster", 
+       x = "t-SNE Dimension 1", y = "t-SNE Dimension 2") +
+  theme_minimal()
+```
+Overall, I would pick PCA for clustering the wine into reds or whites. Even though PCA is linear in nature, it does a better job at clustering. Predicting the color is objective computed to wine quality which is subjective. It is cool that these unsupervised techniques seem to be doing a pretty good job on clustering with very few parameters. 
+
+
+
+
+
