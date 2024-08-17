@@ -3,4 +3,4 @@
  
  Demeli Aziken, James (Shaunak) Divine, Maggie Kleman, Grayson Merritt
 
-[Problems 1 - 5](relative/path/to/folder/)
+[Problems 1 - 5](https://github.com/graysonmerritt/MSBA_STA_380/tree/main/Problems%201-5)
